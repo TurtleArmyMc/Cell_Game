@@ -1,0 +1,2 @@
+[workspace]
+members = ["cell_game", "game_wasm", "web_server"]

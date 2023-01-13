@@ -1,0 +1,53 @@
+[package]
+name = "game_wasm"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+edition = "2021"
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+cell_game = { path = "../cell_game" }
+# WASM dependencies
+cfg-if = "0.1.2"
+wasm-bindgen = "0.2"
+# The `console_error_panic_hook` crate provides better debugging of panics by
+# logging them with `console.error`. This is great for development, but requires
+# all the `std::fmt` and `std::panicking` infrastructure, so isn't great for
+# code size when deploying.
+console_error_panic_hook = { version = "0.1.1", optional = true }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  'console',
+
+  # Canvas
+  'CanvasRenderingContext2d',
+  'Document',
+  'DomRect',
+  'Element',
+  'HtmlCanvasElement',
+  'MouseEvent',
+  'Window',
+
+  # Websocket
+  "BinaryType",
+  "Blob",
+  "ErrorEvent",
+  "FileReader",
+  "MessageEvent",
+  "ProgressEvent",
+  "WebSocket",
+]
+
+[profile.release]
+opt-level = 'z'
+lto = true
