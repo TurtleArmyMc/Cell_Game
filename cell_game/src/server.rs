@@ -1,8 +1,9 @@
 use std::slice::Iter;
 
 use crate::{
-    cells::{food_cell::FoodCell, player_cell::PlayerCell},
-    pos::{Point, Rect},
+    cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
+    game_view::GameView,
+    pos::{Circle, Point, Rect},
 };
 
 pub struct GameServer {
@@ -17,6 +18,7 @@ impl GameServer {
         width: 1920.0,
         height: 1080.0,
     };
+    const VIEW_RADIUS_MULTIPLIER: f64 = 7.0;
 
     pub fn new() -> Self {
         Self {
@@ -47,11 +49,30 @@ impl GameServer {
         }
     }
 
-    pub fn player_cells(&self) -> Iter<'_, PlayerCell> {
-        self.players.iter()
+    pub fn game_view(&self) -> ServerView<'_> {
+        ServerView(self)
     }
 
-    pub fn food_cells(&self) -> Iter<'_, FoodCell> {
-        self.food.iter()
+    fn player_view_radius(&self) -> Option<Circle> {
+        self.players.first().map(|p| Circle {
+            center: p.pos(),
+            radius: p.radius() * Self::VIEW_RADIUS_MULTIPLIER,
+        })
+    }
+}
+
+pub struct ServerView<'a>(&'a GameServer);
+
+impl<'a> GameView<'a, Iter<'a, PlayerCell>, Iter<'a, FoodCell>> for ServerView<'a> {
+    fn player_cells(&self) -> Iter<'a, PlayerCell> {
+        self.0.players.iter()
+    }
+
+    fn food_cells(&self) -> Iter<'a, FoodCell> {
+        self.0.food.iter()
+    }
+
+    fn view_area(&self) -> Option<Circle> {
+        self.0.player_view_radius()
     }
 }

@@ -1,6 +1,9 @@
 use std::f64;
 
-use cell_game::{cells::cell::Cell, server::GameServer};
+use cell_game::{
+    cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
+    game_view::GameView,
+};
 use wasm_bindgen::JsValue;
 
 use crate::web_utils;
@@ -24,16 +27,26 @@ impl CanvasRender {
         }
     }
 
-    pub fn render(&self, game: &GameServer) {
+    pub fn render<'a, P, F, View>(&self, game: &View)
+    where
+        P: Iterator<Item = &'a PlayerCell>,
+        F: Iterator<Item = &'a FoodCell>,
+        View: GameView<'a, P, F>,
+    {
         self.clear_canvas();
         self.ctx.set_stroke_style(&self.green_string);
         self.render_cells(game);
     }
 
-    fn render_cells(&self, game: &GameServer) {
+    fn render_cells<'a, P, F, View>(&self, game: &View)
+    where
+        P: Iterator<Item = &'a PlayerCell>,
+        F: Iterator<Item = &'a FoodCell>,
+        View: GameView<'a, P, F>,
+    {
         self.ctx.set_stroke_style(&self.green_string);
         for p in game.player_cells() {
-            self.draw_filled_circle(p.pos().x, p.pos().y, p.hitbox().radius);
+            self.draw_filled_circle(p.pos().x, p.pos().y, p.radius());
         }
 
         for f in game.food_cells() {
@@ -47,7 +60,7 @@ impl CanvasRender {
                     &self.green_string
                 },
             );
-            self.draw_filled_circle(f.pos().x, f.pos().y, f.hitbox().radius);
+            self.draw_filled_circle(f.pos().x, f.pos().y, f.radius());
         }
     }
 

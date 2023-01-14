@@ -9,11 +9,18 @@ pub trait Cell: Sized {
 
     fn mass(&self) -> f64;
 
+    fn radius_squared(&self) -> f64 {
+        self.mass() * Self::MASS_AREA_MULTIPLIER
+    }
+
+    fn radius(&self) -> f64 {
+        self.radius_squared().sqrt()
+    }
+
     fn hitbox(&self) -> Circle {
-        let radius = (self.mass() * Self::MASS_AREA_MULTIPLIER).sqrt();
         Circle {
             center: self.pos(),
-            radius,
+            radius: self.radius(),
         }
     }
 }

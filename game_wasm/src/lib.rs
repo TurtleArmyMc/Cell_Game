@@ -50,7 +50,7 @@ pub fn start() -> JsResult {
             game.set_move_to(p);
         }
         game.tick();
-        renderer.render(&game);
+        renderer.render(&game.game_view());
 
         web_utils::request_animation_frame(render_callback_ref_inner.borrow().as_ref().unwrap());
     });
