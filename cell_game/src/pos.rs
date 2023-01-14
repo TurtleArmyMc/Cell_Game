@@ -137,4 +137,11 @@ impl Circle {
         let radius_sum = self.radius + other.radius;
         self.center.squared_dist_to(other.center) <= radius_sum * radius_sum
     }
+
+    pub fn scale_centered(self, factor: f64) -> Self {
+        Self {
+            center: self.center,
+            radius: self.radius * factor,
+        }
+    }
 }

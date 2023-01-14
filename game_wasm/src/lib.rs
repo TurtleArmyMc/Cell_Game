@@ -15,7 +15,9 @@ use web_utils::JsResult;
 pub fn start() -> JsResult {
     let mut game = cell_game::server::GameServer::new();
     game.spawn_player();
-    game.spawn_food();
+    for _ in 0..100 {
+        game.spawn_food();
+    }
 
     let renderer = renderer::CanvasRender::new();
 
