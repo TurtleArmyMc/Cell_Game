@@ -4,7 +4,7 @@ use cell_game::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
     game_view::GameView,
 };
-use wasm_bindgen::JsValue;
+use wasm_bindgen::{JsCast, JsValue};
 
 use crate::web_utils;
 
@@ -33,9 +33,22 @@ impl CanvasRender {
         F: Iterator<Item = &'a FoodCell>,
         View: GameView<'a, P, F>,
     {
+        self.set_html_canvas_dimensions();
+
         self.clear_canvas();
         self.ctx.set_stroke_style(&self.green_string);
         self.render_cells(game);
+    }
+
+    fn set_html_canvas_dimensions(&self) {
+        let rect = self
+            .cvs
+            .clone()
+            .dyn_into::<web_sys::Element>()
+            .unwrap()
+            .get_bounding_client_rect();
+        self.cvs.set_width(rect.width() as u32);
+        self.cvs.set_height(rect.height() as u32);
     }
 
     fn render_cells<'a, P, F, View>(&self, game: &View)
