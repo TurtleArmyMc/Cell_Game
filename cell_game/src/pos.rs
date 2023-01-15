@@ -108,6 +108,19 @@ impl Rect {
         })
     }
 
+    pub fn scale_centered(self, factor: f64) -> Self {
+        let diff_x = self.width - (self.width * factor);
+        let diff_y = self.height - (self.height * factor);
+        Self {
+            top_left: Point {
+                x: self.top_left.x + (diff_x / 2.0),
+                y: self.top_left.y + (diff_y / 2.0),
+            },
+            width: self.width - diff_x,
+            height: self.height - diff_y,
+        }
+    }
+
     pub fn min_x(self) -> f64 {
         self.top_left.x
     }
@@ -142,6 +155,22 @@ impl Circle {
         Self {
             center: self.center,
             radius: self.radius * factor,
+        }
+    }
+
+    /// aspect_ratio describes how many times wider the rectangle should be
+    /// compared to its height
+    pub fn fit_rect_within_circle(self, aspect_ratio: f64) -> Rect {
+        let vec_to_edge = Vec2 {
+            x: aspect_ratio,
+            y: 1.0,
+        }
+        .normalize()
+            * self.radius;
+        Rect {
+            top_left: self.center.offset(vec_to_edge * -1.0),
+            width: vec_to_edge.x * 2.0,
+            height: vec_to_edge.y * 2.0,
         }
     }
 }
