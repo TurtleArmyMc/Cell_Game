@@ -1,12 +1,11 @@
-use crate::pos::{Point, Rect};
+use crate::pos::{Point, Rect, Vec2};
 
 use super::cell::Cell;
-
 
 pub struct PlayerCell {
     pos: Point,
     mass: f64,
-    move_towards: Point,
+    move_direction: Vec2,
 }
 
 impl PlayerCell {
@@ -17,23 +16,19 @@ impl PlayerCell {
         Self {
             pos,
             mass: Self::NEW_SPAWN_MASS,
-            move_towards: pos,
+            move_direction: Vec2::ZERO,
         }
     }
 
-    pub fn set_move_towards(&mut self, pos: Point) {
-        self.move_towards = pos;
+    pub fn move_towards_point(&mut self, pos: Point) {
+        self.move_direction = self.pos.vec_to(pos);
+        if self.move_direction.magnitude_squared() > Self::MAX_MOVE_SPEED * Self::MAX_MOVE_SPEED {
+            self.move_direction = self.move_direction.normalize() * Self::MAX_MOVE_SPEED;
+        }
     }
 
     pub fn move_player(&mut self, bounds: Rect) {
-        self.pos = if self.pos.squared_dist_to(self.move_towards)
-            < Self::MAX_MOVE_SPEED * Self::MAX_MOVE_SPEED
-        {
-            self.move_towards
-        } else {
-            self.pos
-                .offset(self.pos.vec_to(self.move_towards).normalize() * Self::MAX_MOVE_SPEED)
-        };
+        self.pos = self.pos.offset(self.move_direction);
         self.pos.x = self.pos.x.max(bounds.min_x());
         self.pos.y = self.pos.y.max(bounds.min_y());
         self.pos.x = self.pos.x.min(bounds.max_x());

@@ -53,7 +53,7 @@ impl GameServer {
 
     pub fn set_move_to(&mut self, dest: Point) {
         for p in self.players.iter_mut() {
-            p.set_move_towards(dest)
+            p.move_towards_point(dest)
         }
     }
 
