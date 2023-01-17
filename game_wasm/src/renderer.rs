@@ -1,9 +1,9 @@
 use std::f64;
 
 use cell_game::{
-    cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
+    cells::cell::Cell,
     game_view::GameView,
-    pos::Rect,
+    pos::{Point, Rect},
 };
 use wasm_bindgen::{JsCast, JsValue};
 
@@ -38,11 +38,38 @@ impl CanvasRender {
         self.visible_game_area
     }
 
-    pub fn render<'a, P, F, View>(&mut self, game: &View)
+    pub fn canvas_pos_to_game_pos(
+        &self,
+        Point {
+            x: canvas_x,
+            y: canvas_y,
+        }: Point,
+    ) -> Option<Point> {
+        let canvas_rect = self.canvas_rect();
+        match self.visible_rect() {
+            Some(visible_rect) => Some(Point {
+                x: visible_rect.min_x()
+                    + ((canvas_x / canvas_rect.width as f64) * visible_rect.width),
+                y: visible_rect.min_y()
+                    + ((canvas_y / canvas_rect.height as f64) * visible_rect.height),
+            }),
+            None => None,
+        }
+    }
+
+    pub fn canvas_rect(&self) -> Rect {
+        let r = self
+            .cvs
+            .clone()
+            .dyn_into::<web_sys::Element>()
+            .unwrap()
+            .get_bounding_client_rect();
+        Rect::new(r.x(), r.y(), r.width(), r.height())
+    }
+
+    pub fn render<'a, View>(&mut self, game: &'a View)
     where
-        P: Iterator<Item = &'a PlayerCell>,
-        F: Iterator<Item = &'a FoodCell>,
-        View: GameView<'a, P, F>,
+        View: GameView<'a>,
     {
         self.set_html_canvas_dimensions();
         self.clear_canvas();
@@ -67,11 +94,9 @@ impl CanvasRender {
         self.cvs.set_height(rect.height() as u32);
     }
 
-    fn render_cells<'a, P, F, View>(&self, game: &View)
+    fn render_cells<'a, View>(&self, game: &'a View)
     where
-        P: Iterator<Item = &'a PlayerCell>,
-        F: Iterator<Item = &'a FoodCell>,
-        View: GameView<'a, P, F>,
+        View: GameView<'a>,
     {
         if let Some(view_rect) = self.visible_game_area {
             let canvas_x_mid = self.cvs.width() as f64 / 2.0;

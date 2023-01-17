@@ -7,6 +7,7 @@ use rand::prelude::*;
 
 use crate::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
+    client_connection::{ClientConnection, PlayerInput},
     game_view::GameView,
     pos::{Circle, Point, Rect},
 };
@@ -15,6 +16,8 @@ pub struct GameServer {
     players: Vec<PlayerCell>,
     food: Vec<FoodCell>,
     bounds: Rect,
+
+    connections: Vec<Box<dyn for<'a> ClientConnection<'a, V = ServerView<'a>>>>,
 }
 
 impl GameServer {
@@ -30,6 +33,7 @@ impl GameServer {
             players: Vec::new(),
             food: Vec::new(),
             bounds: Self::GAME_BOUNDS,
+            connections: Vec::new(),
         }
     }
 
@@ -37,6 +41,25 @@ impl GameServer {
         for p in self.players.iter_mut() {
             p.move_player(self.bounds)
         }
+
+        for conn in self.connections.iter_mut() {
+            let input = conn.on_tick(ServerView {
+                players: &self.players,
+                food: &self.food,
+                view_area: Self::player_view_radius(&self.players),
+            });
+
+            if let Some(PlayerInput { move_to }) = input {
+                Self::set_move_to(&mut self.players, move_to)
+            }
+        }
+    }
+
+    pub fn add_connection(
+        &mut self,
+        conn: Box<dyn for<'a> ClientConnection<'a, V = ServerView<'a>>>,
+    ) {
+        self.connections.push(conn)
     }
 
     pub fn spawn_player(&mut self) {
@@ -51,71 +74,70 @@ impl GameServer {
         }))
     }
 
-    pub fn set_move_to(&mut self, dest: Point) {
-        for p in self.players.iter_mut() {
+    fn set_move_to(players: &mut Vec<PlayerCell>, dest: Point) {
+        for p in players.iter_mut() {
             p.move_towards_point(dest)
         }
     }
 
-    pub fn game_view(&self) -> ServerView<'_> {
-        ServerView(self)
-    }
-
-    fn cell_overlaps_view_radius<T: Cell>(&self, cell: &T) -> bool {
-        match self.player_view_radius() {
-            Some(view_area) => cell.hitbox().overlaps_circle(view_area),
-            None => false,
-        }
-    }
-
-    fn player_view_radius(&self) -> Option<Circle> {
-        self.players
+    fn player_view_radius(players: &Vec<PlayerCell>) -> Option<Circle> {
+        players
             .first()
             .map(|p| p.hitbox().scale_centered(Self::VIEW_RADIUS_MULTIPLIER))
     }
-
-    fn cell_visible<'a, T: Cell>(&(cell, game): &(&'a T, &'a GameServer)) -> bool {
-        game.cell_overlaps_view_radius(cell)
-    }
 }
 
-pub struct ServerView<'a>(&'a GameServer);
+pub struct ServerView<'a> {
+    players: &'a Vec<PlayerCell>,
+    food: &'a Vec<FoodCell>,
+    view_area: Option<Circle>,
+}
 
 pub type ServerViewIterator<'a, T: Cell> = Map<
-    Filter<Zip<Iter<'a, T>, Repeat<&'a GameServer>>, fn(&(&'a T, &'a GameServer)) -> bool>,
-    fn((&'a T, &'a GameServer)) -> &'a T,
+    Filter<Zip<Iter<'a, T>, Repeat<Option<Circle>>>, fn(&(&T, Option<Circle>)) -> bool>,
+    fn((&T, Option<Circle>)) -> &T,
 >;
 
-fn cell_from_tuple<'a, T: Cell>((cell, _): (&'a T, &'a GameServer)) -> &'a T {
+#[inline]
+fn cell_from_tuple<'a, T: Cell>((cell, _): (&'a T, Option<Circle>)) -> &'a T {
     cell
 }
 
-impl<'a> GameView<'a, ServerViewIterator<'a, PlayerCell>, ServerViewIterator<'a, FoodCell>>
-    for ServerView<'a>
-{
-    fn player_cells(&self) -> ServerViewIterator<'a, PlayerCell> {
-        // This would ideally be a .filter call with a closure, but that would
-        // prevent the iterator type for GameView from being specified because
-        // the closure would have an anonymous type that could not be referenced
-        self.0
-            .players
-            .iter()
-            .zip(std::iter::repeat(self.0))
-            .filter(GameServer::cell_visible as fn(&(&'a PlayerCell, &'a GameServer)) -> bool)
-            .map(cell_from_tuple as fn((&'a PlayerCell, &'a GameServer)) -> &'a PlayerCell)
+#[inline]
+fn cell_visible<T: Cell>(&(cell, view_area): &(&T, Option<Circle>)) -> bool {
+    match view_area {
+        Some(area) => cell.hitbox().overlaps_circle(area),
+        None => false,
+    }
+}
+
+impl<'a> GameView<'a> for ServerView<'a> {
+    type P = ServerViewIterator<'a, PlayerCell>;
+    type F = ServerViewIterator<'a, FoodCell>;
+
+    fn player_cells(&'a self) -> Self::P {
+        self.get_cell_iterator(self.players)
     }
 
-    fn food_cells(&self) -> ServerViewIterator<'a, FoodCell> {
-        // Again, would ideally just be a .filter call
-        self.0
-            .food
-            .iter()
-            .zip(std::iter::repeat(self.0))
-            .filter(GameServer::cell_visible as fn(&(&'a FoodCell, &'a GameServer)) -> bool)
-            .map(cell_from_tuple as fn((&'a FoodCell, &'a GameServer)) -> &'a FoodCell)
+    fn food_cells(&'a self) -> Self::F {
+        self.get_cell_iterator(self.food)
     }
 
     fn view_area(&self) -> Option<Circle> {
-        self.0.player_view_radius()
+        self.view_area
+    }
+}
+
+impl<'a> ServerView<'a> {
+    #[inline]
+    fn get_cell_iterator<T: Cell>(&'a self, cells: &'a Vec<T>) -> ServerViewIterator<'a, T> {
+        // This would ideally be a .filter call with a closure, but that would
+        // prevent the iterator type for GameView from being specified because
+        // the closure would have an anonymous type that could not be referenced
+        cells
+            .iter()
+            .zip(std::iter::repeat(self.view_area))
+            .filter(cell_visible as fn(&(&T, Option<Circle>)) -> bool)
+            .map(cell_from_tuple as fn((&T, Option<Circle>)) -> &T)
     }
 }
