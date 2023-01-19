@@ -5,3 +5,4 @@ pub mod player;
 mod player_connection;
 pub mod pos;
 pub mod server;
+pub mod server_view;
