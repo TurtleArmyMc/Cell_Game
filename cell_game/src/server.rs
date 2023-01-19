@@ -1,5 +1,5 @@
 use std::{
-    iter::{Filter, Map, Repeat, Zip},
+    iter::{repeat, Filter, FlatMap, Map, Repeat, Zip},
     slice::Iter,
 };
 
@@ -9,15 +9,19 @@ use crate::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
     client_connection::{ClientConnection, PlayerInput},
     game_view::GameView,
+    player::{Player, PlayerIdGenerator},
+    player_connection::PlayerConnection,
     pos::{Circle, Point, Rect},
 };
 
 pub struct GameServer {
-    players: Vec<PlayerCell>,
+    players: Vec<Player>,
     food: Vec<FoodCell>,
     bounds: Rect,
 
-    connections: Vec<Box<dyn for<'a> ClientConnection<'a, V = ServerView<'a>>>>,
+    player_id_gen: PlayerIdGenerator,
+
+    connections: Vec<PlayerConnection>,
 }
 
 impl GameServer {
@@ -33,24 +37,44 @@ impl GameServer {
             players: Vec::new(),
             food: Vec::new(),
             bounds: Self::GAME_BOUNDS,
+            player_id_gen: PlayerIdGenerator::new(),
             connections: Vec::new(),
         }
     }
 
     pub fn tick(&mut self) {
-        for p in self.players.iter_mut() {
-            p.move_player(self.bounds)
+        for cell in self
+            .players
+            .iter_mut()
+            .flat_map(|p| p.cells_mut().iter_mut())
+        {
+            cell.move_player(self.bounds)
         }
 
         for conn in self.connections.iter_mut() {
-            let input = conn.on_tick(ServerView {
+            let player = self
+                .players
+                .iter_mut()
+                .filter(|p| p.id() == conn.id())
+                .next()
+                .expect("could not find player for connection");
+            let view_area = Self::player_view_radius(player.cells());
+
+            let input = conn.connection().on_tick(ServerView {
                 players: &self.players,
                 food: &self.food,
-                view_area: Self::player_view_radius(&self.players),
+                view_area,
             });
 
+            let player = self
+                .players
+                .iter_mut()
+                .filter(|p| p.id() == conn.id())
+                .next()
+                .expect("could not find player for connection");
+
             if let Some(PlayerInput { move_to }) = input {
-                Self::set_move_to(&mut self.players, move_to)
+                Self::set_move_to(player.cells_mut(), move_to)
             }
         }
     }
@@ -59,12 +83,17 @@ impl GameServer {
         &mut self,
         conn: Box<dyn for<'a> ClientConnection<'a, V = ServerView<'a>>>,
     ) {
-        self.connections.push(conn)
-    }
+        let player_id = self.player_id_gen.next();
 
-    pub fn spawn_player(&mut self) {
-        self.players
-            .push(PlayerCell::spawn_new(self.bounds.center()))
+        self.connections
+            .push(PlayerConnection::new(conn, player_id));
+
+        let mut player = Player::new(player_id);
+        player
+            .cells_mut()
+            .push(PlayerCell::spawn_new(self.bounds.center()));
+
+        self.players.push(player);
     }
 
     pub fn spawn_food(&mut self) {
@@ -88,15 +117,10 @@ impl GameServer {
 }
 
 pub struct ServerView<'a> {
-    players: &'a Vec<PlayerCell>,
+    players: &'a Vec<Player>,
     food: &'a Vec<FoodCell>,
     view_area: Option<Circle>,
 }
-
-pub type ServerViewIterator<'a, T: Cell> = Map<
-    Filter<Zip<Iter<'a, T>, Repeat<Option<Circle>>>, fn(&(&T, Option<Circle>)) -> bool>,
-    fn((&T, Option<Circle>)) -> &T,
->;
 
 #[inline]
 fn cell_from_tuple<'a, T: Cell>((cell, _): (&'a T, Option<Circle>)) -> &'a T {
@@ -112,32 +136,50 @@ fn cell_visible<T: Cell>(&(cell, view_area): &(&T, Option<Circle>)) -> bool {
 }
 
 impl<'a> GameView<'a> for ServerView<'a> {
-    type P = ServerViewIterator<'a, PlayerCell>;
-    type F = ServerViewIterator<'a, FoodCell>;
+    type P = Map<
+        Filter<
+            Zip<
+                FlatMap<
+                    std::slice::Iter<'a, Player>,
+                    std::slice::Iter<'a, PlayerCell>,
+                    fn(&'a Player) -> std::slice::Iter<'a, PlayerCell>,
+                >,
+                Repeat<Option<Circle>>,
+            >,
+            fn(&(&'a PlayerCell, Option<Circle>)) -> bool,
+        >,
+        fn((&'a PlayerCell, Option<Circle>)) -> &'a PlayerCell,
+    >;
+    type F = Map<
+        Filter<
+            Zip<Iter<'a, FoodCell>, Repeat<Option<Circle>>>,
+            fn(&(&FoodCell, Option<Circle>)) -> bool,
+        >,
+        fn((&FoodCell, Option<Circle>)) -> &FoodCell,
+    >;
 
     fn player_cells(&'a self) -> Self::P {
-        self.get_cell_iterator(self.players)
+        fn fmap(p: &Player) -> Iter<'_, PlayerCell> {
+            p.cells().iter()
+        }
+
+        self.players
+            .iter()
+            .flat_map(fmap as fn(&Player) -> Iter<'_, PlayerCell>)
+            .zip(repeat(self.view_area))
+            .filter(cell_visible as fn(&(&PlayerCell, Option<Circle>)) -> bool)
+            .map(cell_from_tuple as fn((&PlayerCell, Option<Circle>)) -> &PlayerCell)
     }
 
     fn food_cells(&'a self) -> Self::F {
-        self.get_cell_iterator(self.food)
+        self.food
+            .iter()
+            .zip(repeat(self.view_area))
+            .filter(cell_visible as fn(&(&FoodCell, Option<Circle>)) -> bool)
+            .map(cell_from_tuple as fn((&FoodCell, Option<Circle>)) -> &FoodCell)
     }
 
     fn view_area(&self) -> Option<Circle> {
         self.view_area
-    }
-}
-
-impl<'a> ServerView<'a> {
-    #[inline]
-    fn get_cell_iterator<T: Cell>(&'a self, cells: &'a Vec<T>) -> ServerViewIterator<'a, T> {
-        // This would ideally be a .filter call with a closure, but that would
-        // prevent the iterator type for GameView from being specified because
-        // the closure would have an anonymous type that could not be referenced
-        cells
-            .iter()
-            .zip(std::iter::repeat(self.view_area))
-            .filter(cell_visible as fn(&(&T, Option<Circle>)) -> bool)
-            .map(cell_from_tuple as fn((&T, Option<Circle>)) -> &T)
     }
 }

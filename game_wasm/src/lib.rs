@@ -16,7 +16,6 @@ use web_utils::JsResult;
 #[wasm_bindgen(start)]
 pub fn start() -> JsResult {
     let mut game = cell_game::server::GameServer::new();
-    game.spawn_player();
     for _ in 0..100 {
         game.spawn_food();
     }
