@@ -1,4 +1,4 @@
-use crate::{client_connection::ClientConnection, player::PlayerId, server_view::ServerView};
+use crate::{client_connection::ClientConnection, player_info::PlayerId, server_view::ServerView};
 
 pub struct PlayerConnection {
     connection: Box<dyn for<'a> ClientConnection<'a, V = ServerView<'a>>>,

@@ -3,18 +3,19 @@ use rand::prelude::*;
 use crate::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
     client_connection::{ClientConnection, PlayerInput},
-    player::{Player, PlayerIdGenerator},
     player_connection::PlayerConnection,
+    player_info::{PlayerIdGenerator, PlayerInfo},
     pos::{Circle, Point, Rect},
     server_view::ServerView,
 };
 
 pub struct GameServer {
-    players: Vec<Player>,
+    players: Vec<PlayerCell>,
     food: Vec<FoodCell>,
     bounds: Rect,
 
     player_id_gen: PlayerIdGenerator,
+    player_infos: Vec<PlayerInfo>,
 
     connections: Vec<PlayerConnection>,
 }
@@ -33,60 +34,51 @@ impl GameServer {
             food: Vec::new(),
             bounds: Self::GAME_BOUNDS,
             player_id_gen: PlayerIdGenerator::new(),
+            player_infos: Vec::new(),
             connections: Vec::new(),
         }
     }
 
     pub fn tick(&mut self) {
-        for cell in self
-            .players
-            .iter_mut()
-            .flat_map(|p| p.cells_mut().iter_mut())
-        {
+        for cell in self.players.iter_mut() {
             cell.move_player(self.bounds)
         }
 
         for conn in self.connections.iter_mut() {
-            let player = self
-                .players
-                .iter_mut()
-                .filter(|p| p.id() == conn.id())
-                .next()
-                .expect("could not find player for connection");
-            let view_area = Self::player_view_radius(player.cells());
-
-            let input =
-                conn.connection()
-                    .on_tick(ServerView::new(&self.players, &self.food, view_area));
-
-            let player = self
-                .players
-                .iter_mut()
-                .filter(|p| p.id() == conn.id())
-                .next()
-                .expect("could not find player for connection");
+            let input = conn.connection().on_tick(ServerView::new(
+                &self.players,
+                &self.food,
+                &self.player_infos,
+                Self::player_view_radius(&self.players),
+            ));
 
             if let Some(PlayerInput { move_to }) = input {
-                Self::set_move_to(player.cells_mut(), move_to)
+                Self::set_move_to(
+                    self.players
+                        .iter_mut()
+                        .filter(|cell| cell.owner() == conn.id()),
+                    move_to,
+                )
             }
         }
     }
 
     pub fn add_connection(
         &mut self,
+        name: String,
         conn: Box<dyn for<'a> ClientConnection<'a, V = ServerView<'a>>>,
     ) {
-        let player_id = self.player_id_gen.next();
+        let player_info = PlayerInfo::new(name, &mut self.player_id_gen);
 
         self.connections
-            .push(PlayerConnection::new(conn, player_id));
+            .push(PlayerConnection::new(conn, player_info.id()));
 
-        let mut player = Player::new(player_id);
-        player
-            .cells_mut()
-            .push(PlayerCell::spawn_new(self.bounds.center()));
+        self.players.push(PlayerCell::spawn_new(
+            self.bounds.center(),
+            player_info.id(),
+        ));
 
-        self.players.push(player);
+        self.player_infos.push(player_info);
     }
 
     pub fn spawn_food(&mut self) {
@@ -96,8 +88,8 @@ impl GameServer {
         }))
     }
 
-    fn set_move_to(players: &mut Vec<PlayerCell>, dest: Point) {
-        for p in players.iter_mut() {
+    fn set_move_to<'a, I: Iterator<Item = &'a mut PlayerCell>>(players: I, dest: Point) {
+        for p in players {
             p.move_towards_point(dest)
         }
     }

@@ -1,30 +1,33 @@
 use std::{
-    iter::{repeat, Filter, FlatMap, Map, Repeat, Zip},
+    iter::{repeat, Filter, Map, Repeat, Zip},
     slice::Iter,
 };
 
 use crate::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
     game_view::GameView,
-    player::Player,
+    player_info::PlayerInfo,
     pos::Circle,
 };
 
 pub struct ServerView<'a> {
-    players: &'a Vec<Player>,
+    players: &'a Vec<PlayerCell>,
     food: &'a Vec<FoodCell>,
+    player_infos: &'a Vec<PlayerInfo>,
     view_area: Option<Circle>,
 }
 
 impl<'a> ServerView<'a> {
     pub fn new(
-        players: &'a Vec<Player>,
+        players: &'a Vec<PlayerCell>,
         food: &'a Vec<FoodCell>,
+        player_infos: &'a Vec<PlayerInfo>,
         view_area: Option<Circle>,
     ) -> Self {
         Self {
             players,
             food,
+            player_infos,
             view_area,
         }
     }
@@ -43,51 +46,43 @@ fn cell_visible<T: Cell>(&(cell, view_area): &(&T, Option<Circle>)) -> bool {
     }
 }
 
+type ServerViewIterator<'a, T> = Map<
+    Filter<Zip<Iter<'a, T>, Repeat<Option<Circle>>>, fn(&(&T, Option<Circle>)) -> bool>,
+    fn((&T, Option<Circle>)) -> &T,
+>;
+
 impl<'a> GameView<'a> for ServerView<'a> {
-    type P = Map<
-        Filter<
-            Zip<
-                FlatMap<
-                    Iter<'a, Player>,
-                    Iter<'a, PlayerCell>,
-                    fn(&'a Player) -> Iter<'a, PlayerCell>,
-                >,
-                Repeat<Option<Circle>>,
-            >,
-            fn(&(&'a PlayerCell, Option<Circle>)) -> bool,
-        >,
-        fn((&'a PlayerCell, Option<Circle>)) -> &'a PlayerCell,
-    >;
-    type F = Map<
-        Filter<
-            Zip<Iter<'a, FoodCell>, Repeat<Option<Circle>>>,
-            fn(&(&FoodCell, Option<Circle>)) -> bool,
-        >,
-        fn((&FoodCell, Option<Circle>)) -> &FoodCell,
-    >;
+    type P = ServerViewIterator<'a, PlayerCell>;
+    type F = ServerViewIterator<'a, FoodCell>;
+    type I = Iter<'a, PlayerInfo>;
 
     fn player_cells(&'a self) -> Self::P {
-        fn fmap(p: &Player) -> Iter<'_, PlayerCell> {
-            p.cells().iter()
-        }
-
-        self.players
-            .iter()
-            .flat_map(fmap as fn(&Player) -> Iter<'_, PlayerCell>)
-            .zip(repeat(self.view_area))
-            .filter(cell_visible as fn(&(&PlayerCell, Option<Circle>)) -> bool)
-            .map(cell_from_tuple as fn((&PlayerCell, Option<Circle>)) -> &PlayerCell)
+        self.get_cell_iterator(self.players)
     }
 
     fn food_cells(&'a self) -> Self::F {
-        self.food
-            .iter()
-            .zip(repeat(self.view_area))
-            .filter(cell_visible as fn(&(&FoodCell, Option<Circle>)) -> bool)
-            .map(cell_from_tuple as fn((&FoodCell, Option<Circle>)) -> &FoodCell)
+        self.get_cell_iterator(self.food)
+    }
+
+    fn player_infos(&'a self) -> Self::I {
+        self.player_infos.iter()
     }
 
     fn view_area(&self) -> Option<Circle> {
         self.view_area
+    }
+}
+
+impl<'a> ServerView<'a> {
+    #[inline]
+    fn get_cell_iterator<T: Cell>(&'a self, cells: &'a Vec<T>) -> ServerViewIterator<'a, T> {
+        // This would ideally be a .filter call with a closure, but that would
+        // prevent the iterator type for GameView from being specified because
+        // the closure would have an anonymous type that could not be referenced
+        cells
+            .iter()
+            .zip(repeat(self.view_area))
+            .filter(cell_visible as fn(&(&T, Option<Circle>)) -> bool)
+            .map(cell_from_tuple as fn((&T, Option<Circle>)) -> &T)
     }
 }

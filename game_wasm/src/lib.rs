@@ -24,7 +24,7 @@ pub fn start() -> JsResult {
 
     let canvas_move_reader = canvas_move_writer.clone();
     let conn = LocalConnection::new(renderer, canvas_move_reader);
-    game.add_connection(Box::new(conn));
+    game.add_connection("Player".to_owned(), Box::new(conn));
 
     let mouse_move_callback_ref: Box<Closure<dyn FnMut(web_sys::MouseEvent)>> =
         Box::new(Closure::new(move |e: web_sys::MouseEvent| {
