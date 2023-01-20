@@ -3,11 +3,11 @@ use rand::prelude::*;
 use crate::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
     client_connection::{ClientConnection, PlayerInput},
-    player_connection::PlayerConnection,
     player_info::{PlayerIdGenerator, PlayerInfo},
     pos::{Circle, Point, Rect},
-    server_view::ServerView,
 };
+
+use super::{player_connection::PlayerConnection, server_view::ServerView};
 
 pub struct GameServer {
     players: Vec<PlayerCell>,

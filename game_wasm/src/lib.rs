@@ -7,19 +7,20 @@ mod renderer;
 mod utils;
 mod web_utils;
 
-use cell_game::pos::Point;
+use cell_game::{pos::Point, server::game_server::GameServer};
 use local_connection::LocalConnection;
+use renderer::CanvasRender;
 use std::{cell::RefCell, rc::Rc};
 use wasm_bindgen::{prelude::*, JsCast};
 use web_utils::JsResult;
 
 #[wasm_bindgen(start)]
 pub fn start() -> JsResult {
-    let mut game = cell_game::server::GameServer::new();
+    let mut game = GameServer::new();
     for _ in 0..100 {
         game.spawn_food();
     }
-    let renderer = renderer::CanvasRender::new();
+    let renderer = CanvasRender::new();
     let canvas_move_writer = Rc::new(RefCell::new(None));
 
     let canvas_move_reader = canvas_move_writer.clone();

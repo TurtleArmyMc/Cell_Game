@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use cell_game::{
     client_connection::{ClientConnection, PlayerInput},
     pos::Point,
-    server_view::ServerView,
+    server::server_view::ServerView,
 };
 
 use crate::renderer::CanvasRender;
