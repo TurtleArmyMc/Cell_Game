@@ -3,68 +3,37 @@ use std::f64;
 use cell_game::{
     cells::cell::Cell,
     game_view::GameView,
-    pos::{Point, Rect},
+    pos::{Circle, Point},
 };
 use wasm_bindgen::{JsCast, JsValue};
 
-use crate::web_utils;
+use crate::{view_scaler::ViewScaler, web_utils};
 
 pub struct CanvasRender {
     cvs: web_sys::HtmlCanvasElement,
     ctx: web_sys::CanvasRenderingContext2d,
 
-    visible_game_area: Option<Rect>,
+    view_scaler: Option<ViewScaler>,
 
     green_string: JsValue,
     red_string: JsValue,
 }
 
 impl CanvasRender {
-    const CAMERA_AREA_SCALE: f64 = 0.9;
-
     pub fn new() -> Self {
         Self {
             cvs: web_utils::canvas(),
             ctx: web_utils::canvas_rendering_context_2d(),
 
-            visible_game_area: None,
+            view_scaler: None,
 
             green_string: JsValue::from_str(&RGBA::new(0, 255, 0, 255).to_string()),
             red_string: JsValue::from_str(&RGBA::new(255, 0, 0, 255).to_string()),
         }
     }
 
-    pub fn visible_rect(&self) -> Option<Rect> {
-        self.visible_game_area
-    }
-
-    pub fn canvas_pos_to_game_pos(
-        &self,
-        Point {
-            x: canvas_x,
-            y: canvas_y,
-        }: Point,
-    ) -> Option<Point> {
-        let canvas_rect = self.canvas_rect();
-        match self.visible_rect() {
-            Some(visible_rect) => Some(Point {
-                x: visible_rect.min_x()
-                    + ((canvas_x / canvas_rect.width as f64) * visible_rect.width),
-                y: visible_rect.min_y()
-                    + ((canvas_y / canvas_rect.height as f64) * visible_rect.height),
-            }),
-            None => None,
-        }
-    }
-
-    pub fn canvas_rect(&self) -> Rect {
-        let r = self
-            .cvs
-            .clone()
-            .dyn_into::<web_sys::Element>()
-            .unwrap()
-            .get_bounding_client_rect();
-        Rect::new(r.x(), r.y(), r.width(), r.height())
+    pub fn view_scaler(&self) -> Option<&ViewScaler> {
+        self.view_scaler.as_ref()
     }
 
     pub fn render<'a, View>(&mut self, game: &'a View)
@@ -74,11 +43,7 @@ impl CanvasRender {
         self.set_html_canvas_dimensions();
         self.clear_canvas();
 
-        self.visible_game_area = game.view_area().map(|circle| {
-            circle
-                .fit_rect_within_circle(self.cvs.width() as f64 / self.cvs.height() as f64)
-                .scale_centered(Self::CAMERA_AREA_SCALE)
-        });
+        self.view_scaler = ViewScaler::new(game, &self.cvs);
 
         self.render_cells(game);
     }
@@ -98,17 +63,10 @@ impl CanvasRender {
     where
         View: GameView<'a>,
     {
-        if let Some(view_rect) = self.visible_game_area {
-            let canvas_x_mid = self.cvs.width() as f64 / 2.0;
-            let canvas_y_mid = self.cvs.height() as f64 / 2.0;
-            let canvas_to_view_scale = self.cvs.width() as f64 / view_rect.width;
-
+        if let Some(scaler) = self.view_scaler() {
             self.ctx.set_stroke_style(&self.green_string);
             for p in game.player_cells() {
-                let offset = p.pos().vec_to(view_rect.center()) * canvas_to_view_scale;
-                let x = canvas_x_mid - offset.x;
-                let y = canvas_y_mid - offset.y;
-                self.draw_filled_circle(x, y, p.radius() * canvas_to_view_scale);
+                self.draw_filled_circle(scaler.game_to_canvas_circle(p.hitbox()));
             }
 
             for f in game.food_cells() {
@@ -122,15 +80,18 @@ impl CanvasRender {
                         &self.green_string
                     },
                 );
-                let offset = f.pos().vec_to(view_rect.center()) * canvas_to_view_scale;
-                let x = canvas_x_mid - offset.x;
-                let y = canvas_y_mid - offset.y;
-                self.draw_filled_circle(x, y, f.radius() * canvas_to_view_scale);
+                self.draw_filled_circle(scaler.game_to_canvas_circle(f.hitbox()));
             }
         }
     }
 
-    fn draw_filled_circle(&self, x: f64, y: f64, radius: f64) {
+    fn draw_filled_circle(
+        &self,
+        Circle {
+            center: Point { x, y },
+            radius,
+        }: Circle,
+    ) {
         self.ctx.set_line_cap("round");
         self.ctx.set_line_width(radius * 2.0);
         self.ctx.begin_path();

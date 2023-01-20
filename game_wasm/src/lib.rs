@@ -5,6 +5,7 @@ extern crate web_sys;
 mod local_connection;
 mod renderer;
 mod utils;
+mod view_scaler;
 mod web_utils;
 
 use cell_game::{pos::Point, server::game_server::GameServer};

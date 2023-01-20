@@ -21,7 +21,8 @@ impl<'a> ClientConnection<'a> for LocalConnection {
         self.canvas_move_reader
             .borrow_mut()
             .take()
-            .and_then(|canvas_pos| self.renderer.canvas_pos_to_game_pos(canvas_pos))
+            .zip(self.renderer.view_scaler())
+            .map(|(canvas_pos, scaler)| scaler.canvas_to_game_pos(canvas_pos))
             .map(|game_pos| PlayerInput { move_to: game_pos })
     }
 }
