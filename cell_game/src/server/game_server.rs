@@ -42,6 +42,7 @@ impl GameServer {
     pub fn tick(&mut self) {
         self.move_players();
         self.feed_food();
+        self.remove_mass();
         self.handle_connections();
     }
 
@@ -92,6 +93,12 @@ impl GameServer {
         }
         for _ in 0..eaten {
             self.spawn_food();
+        }
+    }
+
+    fn remove_mass(&mut self) {
+        for player_cell in self.players.iter_mut() {
+            player_cell.lose_mass();
         }
     }
 

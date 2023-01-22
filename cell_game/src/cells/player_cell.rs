@@ -15,6 +15,7 @@ pub struct PlayerCell {
 impl PlayerCell {
     pub const MAX_MOVE_SPEED: f64 = 10.0;
     pub const NEW_SPAWN_MASS: f64 = 20.0;
+    pub const MASS_PERCENT_LOSS_PER_TICK: f64 = 0.01 / 60.0;
 
     pub fn spawn_new(pos: Point, owner: PlayerId) -> Self {
         Self {
@@ -42,6 +43,10 @@ impl PlayerCell {
 
     pub fn add_mass(&mut self, mass: f64) {
         self.mass += mass
+    }
+
+    pub fn lose_mass(&mut self) {
+        self.mass = (self.mass * (1.0 - Self::MASS_PERCENT_LOSS_PER_TICK)).max(Self::NEW_SPAWN_MASS)
     }
 
     pub fn owner(&self) -> PlayerId {
