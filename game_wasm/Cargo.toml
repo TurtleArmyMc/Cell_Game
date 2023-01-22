@@ -36,6 +36,7 @@ features = [
   'Element',
   'HtmlCanvasElement',
   'MouseEvent',
+  'TextMetrics',
   'Window',
 
   # Websocket

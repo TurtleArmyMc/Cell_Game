@@ -7,7 +7,7 @@ pub struct FoodCell {
 }
 
 impl FoodCell {
-    pub const MASS: f64 = 5.0;
+    pub const MASS: f64 = 1.0;
 
     pub fn spawn_new(pos: Point) -> Self {
         Self { pos }

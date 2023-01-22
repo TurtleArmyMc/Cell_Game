@@ -11,6 +11,9 @@ pub struct ViewScaler {
 }
 
 impl ViewScaler {
+    /// The amount of the view area that should be rendered on the canvas. This
+    /// isn't the whole view area to avoid pop-in around the corners of the
+    /// canvas if the game isn't local.
     const CAMERA_AREA_SCALE: f64 = 0.9;
 
     pub fn new<'a, V: GameView<'a>>(game_view: &V, cvs: &HtmlCanvasElement) -> Option<Self> {
@@ -25,10 +28,26 @@ impl ViewScaler {
         })
     }
 
+    pub fn canvas_to_game_x(&self, x: f64) -> f64 {
+        self.visible_game_area.min_x() + (x / self.canvas_to_game_scale)
+    }
+
+    pub fn canvas_to_game_y(&self, y: f64) -> f64 {
+        self.visible_game_area.min_y() + (y / self.canvas_to_game_scale)
+    }
+
+    pub fn game_to_canvas_x(&self, x: f64) -> f64 {
+        (x - self.visible_game_area.min_x()) * self.canvas_to_game_scale
+    }
+
+    pub fn game_to_canvas_y(&self, y: f64) -> f64 {
+        (y - self.visible_game_area.min_y()) * self.canvas_to_game_scale
+    }
+
     pub fn canvas_to_game_pos(&self, Point { x: cvs_x, y: cvs_y }: Point) -> Point {
         Point {
-            x: self.visible_game_area.min_x() + (cvs_x / self.canvas_to_game_scale),
-            y: self.visible_game_area.min_y() + (cvs_y / self.canvas_to_game_scale),
+            x: self.canvas_to_game_x(cvs_x),
+            y: self.canvas_to_game_y(cvs_y),
         }
     }
 
@@ -40,8 +59,8 @@ impl ViewScaler {
         }: Point,
     ) -> Point {
         Point {
-            x: (game_x - self.visible_game_area.min_x()) * self.canvas_to_game_scale,
-            y: (game_y - self.visible_game_area.min_y()) * self.canvas_to_game_scale,
+            x: self.game_to_canvas_x(game_x),
+            y: self.game_to_canvas_y(game_y),
         }
     }
 

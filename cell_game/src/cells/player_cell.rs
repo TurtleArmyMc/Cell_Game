@@ -14,7 +14,7 @@ pub struct PlayerCell {
 
 impl PlayerCell {
     pub const MAX_MOVE_SPEED: f64 = 10.0;
-    pub const NEW_SPAWN_MASS: f64 = 100.0;
+    pub const NEW_SPAWN_MASS: f64 = 20.0;
 
     pub fn spawn_new(pos: Point, owner: PlayerId) -> Self {
         Self {

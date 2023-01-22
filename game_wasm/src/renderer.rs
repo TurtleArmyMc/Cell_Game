@@ -1,9 +1,10 @@
 use std::f64;
 
 use cell_game::{
-    cells::cell::Cell,
+    cells::{cell::Cell, player_cell::PlayerCell},
     game_view::GameView,
-    pos::{Circle, Point},
+    player_info::PlayerInfo,
+    pos::{Circle, Point, Vec2},
 };
 use wasm_bindgen::{JsCast, JsValue};
 
@@ -64,9 +65,12 @@ impl CanvasRender {
         View: GameView<'a>,
     {
         if let Some(scaler) = self.view_scaler() {
-            self.ctx.set_stroke_style(&self.green_string);
             for p in game.player_cells() {
-                self.draw_filled_circle(scaler.game_to_canvas_circle(p.hitbox()));
+                self.render_player_cell(
+                    scaler,
+                    p,
+                    game.player_infos().find(|i| i.id() == p.owner()).unwrap(),
+                );
             }
 
             for f in game.food_cells() {
@@ -85,6 +89,13 @@ impl CanvasRender {
         }
     }
 
+    fn render_player_cell(&self, scaler: &ViewScaler, cell: &PlayerCell, info: &PlayerInfo) {
+        self.ctx.set_stroke_style(&self.green_string);
+        self.draw_filled_circle(scaler.game_to_canvas_circle(cell.hitbox()));
+        self.ctx.set_font("25px sans-serif");
+        self.draw_centered_text(info.name(), scaler.game_to_canvas_pos(cell.pos()));
+    }
+
     fn draw_filled_circle(
         &self,
         Circle {
@@ -98,6 +109,24 @@ impl CanvasRender {
         self.ctx.move_to(x, y);
         self.ctx.line_to(x, y);
         self.ctx.stroke();
+    }
+
+    fn draw_centered_text(&self, text: &str, pos: Point) {
+        let text_metrics = self.ctx.measure_text(text).expect("could not measure text");
+        self.draw_text(
+            text,
+            pos.offset(Vec2 {
+                x: -text_metrics.width() / 2.0,
+                y: text_metrics.actual_bounding_box_descent(),
+            }),
+        );
+    }
+
+    /// Point is the top left corner of the text
+    fn draw_text(&self, text: &str, Point { x, y }: Point) {
+        self.ctx
+            .fill_text(text, x, y)
+            .expect("could not render text")
     }
 
     fn clear_canvas(&self) {
