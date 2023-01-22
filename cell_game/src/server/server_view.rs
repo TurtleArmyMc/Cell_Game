@@ -6,7 +6,7 @@ use std::{
 use crate::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
     game_view::GameView,
-    player_info::PlayerInfo,
+    player_info::{PlayerId, PlayerInfo},
     pos::Circle,
 };
 
@@ -15,6 +15,7 @@ pub struct ServerView<'a> {
     food: &'a Vec<FoodCell>,
     player_infos: &'a Vec<PlayerInfo>,
     view_area: Option<Circle>,
+    owner: PlayerId,
 }
 
 impl<'a> ServerView<'a> {
@@ -23,12 +24,14 @@ impl<'a> ServerView<'a> {
         food: &'a Vec<FoodCell>,
         player_infos: &'a Vec<PlayerInfo>,
         view_area: Option<Circle>,
+        owner: PlayerId,
     ) -> Self {
         Self {
             players,
             food,
             player_infos,
             view_area,
+            owner,
         }
     }
 }
@@ -70,6 +73,10 @@ impl<'a> GameView<'a> for ServerView<'a> {
 
     fn view_area(&self) -> Option<Circle> {
         self.view_area
+    }
+
+    fn owner(&self) -> PlayerId {
+        self.owner
     }
 }
 

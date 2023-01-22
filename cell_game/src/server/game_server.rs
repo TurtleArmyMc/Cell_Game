@@ -3,7 +3,7 @@ use rand::prelude::*;
 use crate::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
     client_connection::{ClientConnection, PlayerInput},
-    player_info::{PlayerIdGenerator, PlayerInfo},
+    player_info::{PlayerId, PlayerIdGenerator, PlayerInfo},
     pos::{Circle, Point, Rect},
 };
 
@@ -46,7 +46,7 @@ impl GameServer {
         self.handle_connections();
     }
 
-    pub fn add_connection(
+    pub fn connect_player(
         &mut self,
         name: String,
         conn: Box<dyn for<'a> ClientConnection<'a, V = ServerView<'a>>>,
@@ -104,11 +104,14 @@ impl GameServer {
 
     fn handle_connections(&mut self) {
         for conn in self.connections.iter_mut() {
+            let owner = conn.id();
+            let view_area = Self::player_view_area(&self.players, owner);
             let input = conn.connection().on_tick(ServerView::new(
                 &self.players,
                 &self.food,
                 &self.player_infos,
-                Self::player_view_radius(&self.players),
+                view_area,
+                owner,
             ));
 
             if let Some(PlayerInput { move_to }) = input {
@@ -128,9 +131,10 @@ impl GameServer {
         }
     }
 
-    fn player_view_radius(players: &Vec<PlayerCell>) -> Option<Circle> {
+    fn player_view_area(players: &Vec<PlayerCell>, owner: PlayerId) -> Option<Circle> {
         players
-            .first()
+            .iter()
+            .find(|cell| cell.owner() == owner)
             .map(|p| p.hitbox().scale_centered(Self::VIEW_RADIUS_MULTIPLIER))
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     cells::{food_cell::FoodCell, player_cell::PlayerCell},
-    player_info::PlayerInfo,
+    player_info::{PlayerId, PlayerInfo},
     pos::Circle,
 };
 
@@ -14,4 +14,6 @@ pub trait GameView<'a> {
     fn player_infos(&'a self) -> Self::I;
     /// Returns None if the viewer has no cells remaining
     fn view_area(&self) -> Option<Circle>;
+    /// The player who the view belongs to
+    fn owner(&self) -> PlayerId;
 }
