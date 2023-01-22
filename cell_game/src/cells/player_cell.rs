@@ -40,6 +40,10 @@ impl PlayerCell {
         self.pos.y = self.pos.y.min(bounds.max_y());
     }
 
+    pub fn add_mass(&mut self, mass: f64) {
+        self.mass += mass
+    }
+
     pub fn owner(&self) -> PlayerId {
         self.owner
     }

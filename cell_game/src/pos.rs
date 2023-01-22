@@ -151,6 +151,10 @@ impl Circle {
         self.center.squared_dist_to(other.center) <= radius_sum * radius_sum
     }
 
+    pub fn contains_point(self, p: Point) -> bool {
+        self.center.squared_dist_to(p) <= self.radius * self.radius
+    }
+
     pub fn scale_centered(self, factor: f64) -> Self {
         Self {
             center: self.center,

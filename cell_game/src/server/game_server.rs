@@ -40,27 +40,9 @@ impl GameServer {
     }
 
     pub fn tick(&mut self) {
-        for cell in self.players.iter_mut() {
-            cell.move_player(self.bounds)
-        }
-
-        for conn in self.connections.iter_mut() {
-            let input = conn.connection().on_tick(ServerView::new(
-                &self.players,
-                &self.food,
-                &self.player_infos,
-                Self::player_view_radius(&self.players),
-            ));
-
-            if let Some(PlayerInput { move_to }) = input {
-                Self::set_move_to(
-                    self.players
-                        .iter_mut()
-                        .filter(|cell| cell.owner() == conn.id()),
-                    move_to,
-                )
-            }
-        }
+        self.move_players();
+        self.feed_food();
+        self.handle_connections();
     }
 
     pub fn add_connection(
@@ -86,6 +68,51 @@ impl GameServer {
             x: self.bounds.min_x() + (self.bounds.width * random::<f64>()),
             y: self.bounds.min_y() + (self.bounds.height * random::<f64>()),
         }))
+    }
+
+    fn move_players(&mut self) {
+        for cell in self.players.iter_mut() {
+            cell.move_player(self.bounds)
+        }
+    }
+
+    fn feed_food(&mut self) {
+        let mut eaten = 0;
+        for player_cell in self.players.iter_mut() {
+            let hitbox = player_cell.hitbox();
+            self.food.retain(|food_cell| {
+                if hitbox.contains_point(food_cell.pos()) {
+                    player_cell.add_mass(food_cell.mass());
+                    eaten += 1;
+                    false
+                } else {
+                    true
+                }
+            })
+        }
+        for _ in 0..eaten {
+            self.spawn_food();
+        }
+    }
+
+    fn handle_connections(&mut self) {
+        for conn in self.connections.iter_mut() {
+            let input = conn.connection().on_tick(ServerView::new(
+                &self.players,
+                &self.food,
+                &self.player_infos,
+                Self::player_view_radius(&self.players),
+            ));
+
+            if let Some(PlayerInput { move_to }) = input {
+                Self::set_move_to(
+                    self.players
+                        .iter_mut()
+                        .filter(|cell| cell.owner() == conn.id()),
+                    move_to,
+                )
+            }
+        }
     }
 
     fn set_move_to<'a, I: Iterator<Item = &'a mut PlayerCell>>(players: I, dest: Point) {
