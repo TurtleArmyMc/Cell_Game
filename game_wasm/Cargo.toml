@@ -35,6 +35,7 @@ features = [
   'DomRect',
   'Element',
   'HtmlCanvasElement',
+  'Performance',
   'MouseEvent',
   'TextMetrics',
   'Window',

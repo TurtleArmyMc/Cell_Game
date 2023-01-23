@@ -32,7 +32,7 @@ pub fn canvas_rendering_context_2d() -> CanvasRenderingContext2d {
         .unwrap()
 }
 
-pub fn request_animation_frame(f: &Closure<dyn FnMut()>) {
+pub fn request_animation_frame(f: &Closure<dyn FnMut(f64)>) {
     window()
         .request_animation_frame(f.as_ref().unchecked_ref())
         .expect("could not register request animation frame");
@@ -42,4 +42,11 @@ pub fn set_interval(f: &Closure<dyn FnMut()>, timeout: i32) {
     window()
         .set_interval_with_callback_and_timeout_and_arguments_0(f.as_ref().unchecked_ref(), timeout)
         .expect("could not register interval");
+}
+
+pub fn now() -> f64 {
+    window()
+        .performance()
+        .expect("could not find performance for window")
+        .now()
 }

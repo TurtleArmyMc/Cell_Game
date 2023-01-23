@@ -5,18 +5,18 @@ use cell_game::{
     server::server_view::ServerView,
 };
 
-use crate::buffered_view::BufferedView;
+use crate::view_history::ViewHistory;
 
 pub struct LocalConnection {
     player_move_reader: Rc<RefCell<Option<PlayerInput>>>,
-    view_buffer_writer: Rc<RefCell<Option<BufferedView>>>,
+    view_history_writer: Rc<RefCell<ViewHistory>>,
 }
 
 impl<'a> ClientConnection<'a> for LocalConnection {
     type V = ServerView<'a>;
 
     fn on_tick(&'a mut self, view: Self::V) -> Option<PlayerInput> {
-        *self.view_buffer_writer.borrow_mut() = Some(BufferedView::new(&view));
+        self.view_history_writer.borrow_mut().update(&view);
         self.player_move_reader.borrow_mut().take()
     }
 }
@@ -24,11 +24,11 @@ impl<'a> ClientConnection<'a> for LocalConnection {
 impl LocalConnection {
     pub fn new(
         player_move_reader: Rc<RefCell<Option<PlayerInput>>>,
-        view_buffer_writer: Rc<RefCell<Option<BufferedView>>>,
+        view_history_writer: Rc<RefCell<ViewHistory>>,
     ) -> Self {
         Self {
             player_move_reader,
-            view_buffer_writer,
+            view_history_writer,
         }
     }
 }

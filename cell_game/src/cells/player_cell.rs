@@ -63,6 +63,14 @@ impl PlayerCell {
     pub fn id(&self) -> PlayerCellId {
         self.id
     }
+
+    pub fn pos_mut(&mut self) -> &mut Point {
+        &mut self.pos
+    }
+
+    pub fn mass_mut(&mut self) -> &mut f64 {
+        &mut self.mass
+    }
 }
 
 impl Cell for PlayerCell {

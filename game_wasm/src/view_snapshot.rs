@@ -8,7 +8,8 @@ use cell_game::{
     pos::Circle,
 };
 
-pub struct BufferedView {
+/// Stores a view's current state so that it can be used later
+pub struct ViewSnapshot {
     players: Vec<PlayerCell>,
     food: Vec<FoodCell>,
     info: Vec<PlayerInfo>,
@@ -16,7 +17,7 @@ pub struct BufferedView {
     owner: PlayerId,
 }
 
-impl BufferedView {
+impl ViewSnapshot {
     pub fn new<'a, V: GameView<'a>>(view: &'a V) -> Self {
         Self {
             players: view.player_cells().collect(),
@@ -28,7 +29,7 @@ impl BufferedView {
     }
 }
 
-impl<'a> GameView<'a> for BufferedView {
+impl<'a> GameView<'a> for ViewSnapshot {
     type P = Cloned<Iter<'a, PlayerCell>>;
     type F = Cloned<Iter<'a, FoodCell>>;
     type I = Iter<'a, PlayerInfo>;
