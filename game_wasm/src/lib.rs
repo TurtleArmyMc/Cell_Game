@@ -18,9 +18,6 @@ use web_utils::JsResult;
 #[wasm_bindgen(start)]
 pub fn start() -> JsResult {
     let mut game = GameServer::new();
-    for _ in 0..100 {
-        game.spawn_food();
-    }
     let renderer = CanvasRender::new();
     let canvas_move_writer = Rc::new(RefCell::new(None));
 

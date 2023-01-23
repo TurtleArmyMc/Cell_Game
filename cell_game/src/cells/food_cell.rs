@@ -1,4 +1,6 @@
-use crate::pos::Point;
+use rand::prelude::*;
+
+use crate::pos::{Point, Rect};
 
 use super::cell::Cell;
 
@@ -9,8 +11,15 @@ pub struct FoodCell {
 impl FoodCell {
     pub const MASS: f64 = 1.0;
 
-    pub fn spawn_new(pos: Point) -> Self {
+    pub fn new(pos: Point) -> Self {
         Self { pos }
+    }
+
+    pub fn new_within(bounds: Rect) -> Self {
+        Self::new(Point {
+            x: bounds.min_x() + (bounds.width * random::<f64>()),
+            y: bounds.min_y() + (bounds.height * random::<f64>()),
+        })
     }
 }
 

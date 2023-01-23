@@ -1,4 +1,4 @@
-use rand::prelude::*;
+use std::iter::repeat_with;
 
 use crate::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
@@ -27,12 +27,15 @@ impl GameServer {
         height: 1080.0,
     };
     const VIEW_RADIUS_MULTIPLIER: f64 = 30.0;
+    const FOOD_AMOUNT: usize = 100;
 
     pub fn new() -> Self {
+        let bounds = Self::GAME_BOUNDS;
+        let food = Self::n_food(bounds, Self::FOOD_AMOUNT).collect();
         Self {
             players: Vec::new(),
-            food: Vec::new(),
-            bounds: Self::GAME_BOUNDS,
+            food,
+            bounds,
             player_id_gen: PlayerIdGenerator::new(),
             player_infos: Vec::new(),
             connections: Vec::new(),
@@ -64,13 +67,6 @@ impl GameServer {
         self.player_infos.push(player_info);
     }
 
-    pub fn spawn_food(&mut self) {
-        self.food.push(FoodCell::spawn_new(Point {
-            x: self.bounds.min_x() + (self.bounds.width * random::<f64>()),
-            y: self.bounds.min_y() + (self.bounds.height * random::<f64>()),
-        }))
-    }
-
     fn move_players(&mut self) {
         for cell in self.players.iter_mut() {
             cell.move_player(self.bounds)
@@ -91,9 +87,7 @@ impl GameServer {
                 }
             })
         }
-        for _ in 0..eaten {
-            self.spawn_food();
-        }
+        self.food.extend(Self::n_food(self.bounds, eaten))
     }
 
     fn remove_mass(&mut self) {
@@ -116,13 +110,15 @@ impl GameServer {
 
             if let Some(PlayerInput { move_to }) = input {
                 Self::set_move_to(
-                    self.players
-                        .iter_mut()
-                        .filter(|cell| cell.owner() == conn.id()),
+                    self.players.iter_mut().filter(|cell| cell.owner() == owner),
                     move_to,
                 )
             }
         }
+    }
+
+    fn n_food(bounds: Rect, n: usize) -> impl Iterator<Item = FoodCell> {
+        repeat_with(move || FoodCell::new_within(bounds)).take(n)
     }
 
     fn set_move_to<'a, I: Iterator<Item = &'a mut PlayerCell>>(players: I, dest: Point) {
