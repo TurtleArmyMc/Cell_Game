@@ -4,6 +4,7 @@ use crate::pos::{Point, Rect};
 
 use super::cell::Cell;
 
+#[derive(Clone)]
 pub struct FoodCell {
     pos: Point,
 }

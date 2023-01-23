@@ -1,5 +1,6 @@
 pub type PlayerId = u32;
 
+#[derive(Clone)]
 pub struct PlayerInfo {
     id: PlayerId,
     name: String,

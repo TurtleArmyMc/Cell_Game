@@ -21,6 +21,7 @@ pub struct GameServer {
 }
 
 impl GameServer {
+    pub const TICK_RATE: usize = 60;
     const GAME_BOUNDS: Rect = Rect {
         top_left: Point { x: 0.0, y: 0.0 },
         width: 1920.0,

@@ -5,6 +5,7 @@ use crate::{
 
 use super::cell::Cell;
 
+#[derive(Clone)]
 pub struct PlayerCell {
     pos: Point,
     mass: f64,

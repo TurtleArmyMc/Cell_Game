@@ -2,36 +2,33 @@ use std::{cell::RefCell, rc::Rc};
 
 use cell_game::{
     client_connection::{ClientConnection, PlayerInput},
-    pos::Point,
     server::server_view::ServerView,
 };
 
-use crate::renderer::CanvasRender;
+use crate::buffered_view::BufferedView;
 
 pub struct LocalConnection {
-    renderer: CanvasRender,
-    canvas_move_reader: Rc<RefCell<Option<Point>>>,
+    player_move_reader: Rc<RefCell<Option<PlayerInput>>>,
+    view_buffer_writer: Rc<RefCell<Option<BufferedView>>>,
 }
 
 impl<'a> ClientConnection<'a> for LocalConnection {
     type V = ServerView<'a>;
 
     fn on_tick(&'a mut self, view: Self::V) -> Option<PlayerInput> {
-        self.renderer.render(&view);
-        self.canvas_move_reader
-            .borrow_mut()
-            .take()
-            .zip(self.renderer.view_scaler())
-            .map(|(canvas_pos, scaler)| scaler.canvas_to_game_pos(canvas_pos))
-            .map(|game_pos| PlayerInput { move_to: game_pos })
+        *self.view_buffer_writer.borrow_mut() = Some(BufferedView::new(&view));
+        self.player_move_reader.borrow_mut().take()
     }
 }
 
 impl LocalConnection {
-    pub fn new(renderer: CanvasRender, canvas_move_reader: Rc<RefCell<Option<Point>>>) -> Self {
+    pub fn new(
+        player_move_reader: Rc<RefCell<Option<PlayerInput>>>,
+        view_buffer_writer: Rc<RefCell<Option<BufferedView>>>,
+    ) -> Self {
         Self {
-            renderer,
-            canvas_move_reader,
+            player_move_reader,
+            view_buffer_writer,
         }
     }
 }
