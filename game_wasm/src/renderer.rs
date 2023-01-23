@@ -2,6 +2,7 @@ use std::f64;
 
 use cell_game::{
     cells::{cell::Cell, player_cell::PlayerCell},
+    color::Color,
     game_view::GameView,
     player_info::PlayerInfo,
     pos::{Circle, Point, Vec2},
@@ -15,9 +16,6 @@ pub struct CanvasRender {
     ctx: web_sys::CanvasRenderingContext2d,
 
     view_scaler: Option<ViewScaler>,
-
-    green_string: JsValue,
-    red_string: JsValue,
 }
 
 impl CanvasRender {
@@ -27,9 +25,6 @@ impl CanvasRender {
             ctx: web_utils::canvas_rendering_context_2d(),
 
             view_scaler: None,
-
-            green_string: JsValue::from_str(&RGBA::new(0, 255, 0, 255).to_string()),
-            red_string: JsValue::from_str(&RGBA::new(255, 0, 0, 255).to_string()),
         }
     }
 
@@ -74,23 +69,14 @@ impl CanvasRender {
             }
 
             for f in game.food_cells() {
-                self.ctx.set_stroke_style(
-                    if game
-                        .player_cells()
-                        .any(|p| p.hitbox().overlaps_circle(f.hitbox()))
-                    {
-                        &self.red_string
-                    } else {
-                        &self.green_string
-                    },
-                );
+                self.set_stroke_color(f.color());
                 self.draw_filled_circle(scaler.game_to_canvas_circle(f.hitbox()));
             }
         }
     }
 
     fn render_player_cell(&self, scaler: &ViewScaler, cell: &PlayerCell, info: &PlayerInfo) {
-        self.ctx.set_stroke_style(&self.green_string);
+        self.set_stroke_color(info.color());
         self.draw_filled_circle(scaler.game_to_canvas_circle(cell.hitbox()));
         self.ctx.set_font("25px sans-serif");
         self.draw_centered_text(info.name(), scaler.game_to_canvas_pos(cell.pos()));
@@ -133,32 +119,9 @@ impl CanvasRender {
         self.ctx
             .clear_rect(0.0, 0.0, self.cvs.width() as f64, self.cvs.height() as f64);
     }
-}
 
-#[derive(Clone, Copy)]
-struct RGBA {
-    red: u8,
-    green: u8,
-    blue: u8,
-    alpha: u8,
-}
-
-impl RGBA {
-    fn new(red: u8, green: u8, blue: u8, alpha: u8) -> Self {
-        Self {
-            red,
-            green,
-            blue,
-            alpha,
-        }
-    }
-}
-
-impl ToString for RGBA {
-    fn to_string(&self) -> String {
-        format!(
-            "#{:02x}{:02x}{:02x}{:02x}",
-            self.red, self.green, self.blue, self.alpha
-        )
+    fn set_stroke_color<T: Color>(&self, color: T) {
+        self.ctx
+            .set_stroke_style(&JsValue::from_str(&color.to_string()));
     }
 }

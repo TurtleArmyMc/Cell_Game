@@ -1,9 +1,15 @@
-use crate::ids::{IdGenerator, PlayerId};
+use rand::prelude::*;
+
+use crate::{
+    color::HSL,
+    ids::{IdGenerator, PlayerId},
+};
 
 #[derive(Clone)]
 pub struct PlayerInfo {
     id: PlayerId,
     name: String,
+    color: HSL,
 }
 
 impl PlayerInfo {
@@ -11,6 +17,7 @@ impl PlayerInfo {
         Self {
             id: id_gen.next(),
             name,
+            color: HSL::new(random(), 255, 130),
         }
     }
 
@@ -20,5 +27,9 @@ impl PlayerInfo {
 
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn color(&self) -> HSL {
+        self.color
     }
 }
