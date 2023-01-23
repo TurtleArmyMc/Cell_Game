@@ -44,7 +44,7 @@ impl ViewHistory {
         self.curr = Some(ViewSnapshot::new(view));
     }
 
-    pub fn get_view(&self, delta: f64) -> Option<BufferedView> {
+    pub fn get_interpolated_view(&self, delta: f64) -> Option<BufferedView> {
         if let (Some(curr), Some(prev)) = (self.curr.as_ref(), self.prev.as_ref()) {
             Some(BufferedView::Interpolated(InterpolatedView {
                 curr,

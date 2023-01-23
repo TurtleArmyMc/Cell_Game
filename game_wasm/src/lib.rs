@@ -78,7 +78,7 @@ pub fn start() -> JsResult {
             .map(|last_tick| (timestamp - last_tick) / (1_000.0 / GameServer::TICK_RATE as f64))
             .unwrap_or(0.0);
 
-        match view_history_reader.borrow().get_view(delta) {
+        match view_history_reader.borrow().get_interpolated_view(delta) {
             Some(BufferedView::Interpolated(view)) => renderer.render(&view),
             Some(BufferedView::Snapshot(view)) => renderer.render(view),
             None => (),
@@ -86,7 +86,6 @@ pub fn start() -> JsResult {
 
         if let Some(pos) = canvas_move_reader
             .borrow_mut()
-            .take()
             .zip(renderer.view_scaler())
             .map(|(pos, scaler)| scaler.canvas_to_game_pos(pos))
         {
