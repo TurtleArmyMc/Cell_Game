@@ -1,5 +1,5 @@
 use crate::{
-    player_info::PlayerId,
+    ids::{IdGenerator, PlayerCellId, PlayerId},
     pos::{Point, Rect, Vec2},
 };
 
@@ -11,6 +11,7 @@ pub struct PlayerCell {
     mass: f64,
     move_direction: Vec2,
     owner: PlayerId,
+    id: PlayerCellId,
 }
 
 impl PlayerCell {
@@ -18,12 +19,17 @@ impl PlayerCell {
     pub const NEW_SPAWN_MASS: f64 = 20.0;
     pub const MASS_PERCENT_LOSS_PER_TICK: f64 = 0.01 / 60.0;
 
-    pub fn spawn_new(pos: Point, owner: PlayerId) -> Self {
+    pub(crate) fn new(
+        pos: Point,
+        owner: PlayerId,
+        id_generator: &mut IdGenerator<PlayerCellId>,
+    ) -> Self {
         Self {
             pos,
             mass: Self::NEW_SPAWN_MASS,
             move_direction: Vec2::ZERO,
             owner,
+            id: id_generator.next(),
         }
     }
 
@@ -52,6 +58,10 @@ impl PlayerCell {
 
     pub fn owner(&self) -> PlayerId {
         self.owner
+    }
+
+    pub fn id(&self) -> PlayerCellId {
+        self.id
     }
 }
 

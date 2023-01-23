@@ -3,7 +3,8 @@ use std::iter::repeat_with;
 use crate::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
     client_connection::{ClientConnection, PlayerInput},
-    player_info::{PlayerId, PlayerIdGenerator, PlayerInfo},
+    ids::{IdGenerator, PlayerCellId, PlayerId},
+    player_info::PlayerInfo,
     pos::{Circle, Point, Rect},
 };
 
@@ -14,7 +15,9 @@ pub struct GameServer {
     food: Vec<FoodCell>,
     bounds: Rect,
 
-    player_id_gen: PlayerIdGenerator,
+    player_id_gen: IdGenerator<PlayerId>,
+    player_cell_id_gen: IdGenerator<PlayerCellId>,
+
     player_infos: Vec<PlayerInfo>,
 
     connections: Vec<PlayerConnection>,
@@ -37,7 +40,8 @@ impl GameServer {
             players: Vec::new(),
             food,
             bounds,
-            player_id_gen: PlayerIdGenerator::new(),
+            player_id_gen: IdGenerator::new(),
+            player_cell_id_gen: IdGenerator::new(),
             player_infos: Vec::new(),
             connections: Vec::new(),
         }
@@ -60,9 +64,10 @@ impl GameServer {
         self.connections
             .push(PlayerConnection::new(conn, player_info.id()));
 
-        self.players.push(PlayerCell::spawn_new(
+        self.players.push(PlayerCell::new(
             self.bounds.center(),
             player_info.id(),
+            &mut self.player_cell_id_gen,
         ));
 
         self.player_infos.push(player_info);

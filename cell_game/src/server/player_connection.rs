@@ -1,4 +1,4 @@
-use crate::{client_connection::ClientConnection, player_info::PlayerId};
+use crate::{client_connection::ClientConnection, ids::PlayerId};
 
 use super::server_view::ServerView;
 
@@ -15,7 +15,7 @@ impl PlayerConnection {
         Self { connection, id }
     }
 
-    pub(crate) fn id(&self) -> u32 {
+    pub(crate) fn id(&self) -> PlayerId {
         self.id
     }
 

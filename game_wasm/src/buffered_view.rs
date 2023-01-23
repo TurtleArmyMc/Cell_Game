@@ -3,7 +3,8 @@ use std::slice::Iter;
 use cell_game::{
     cells::{food_cell::FoodCell, player_cell::PlayerCell},
     game_view::GameView,
-    player_info::{PlayerId, PlayerInfo},
+    ids::PlayerId,
+    player_info::PlayerInfo,
     pos::Circle,
 };
 

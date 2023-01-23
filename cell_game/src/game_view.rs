@@ -1,6 +1,7 @@
 use crate::{
     cells::{food_cell::FoodCell, player_cell::PlayerCell},
-    player_info::{PlayerId, PlayerInfo},
+    ids::PlayerId,
+    player_info::PlayerInfo,
     pos::Circle,
 };
 

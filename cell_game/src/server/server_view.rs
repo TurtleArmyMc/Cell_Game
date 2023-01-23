@@ -6,7 +6,8 @@ use std::{
 use crate::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
     game_view::GameView,
-    player_info::{PlayerId, PlayerInfo},
+    ids::PlayerId,
+    player_info::PlayerInfo,
     pos::Circle,
 };
 

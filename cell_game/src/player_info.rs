@@ -1,4 +1,4 @@
-pub type PlayerId = u32;
+use crate::ids::{IdGenerator, PlayerId};
 
 #[derive(Clone)]
 pub struct PlayerInfo {
@@ -7,7 +7,7 @@ pub struct PlayerInfo {
 }
 
 impl PlayerInfo {
-    pub(crate) fn new(name: String, id_gen: &mut PlayerIdGenerator) -> Self {
+    pub(crate) fn new(name: String, id_gen: &mut IdGenerator<PlayerId>) -> Self {
         Self {
             id: id_gen.next(),
             name,
@@ -20,18 +20,5 @@ impl PlayerInfo {
 
     pub fn name(&self) -> &str {
         &self.name
-    }
-}
-
-pub(crate) struct PlayerIdGenerator(PlayerId);
-
-impl PlayerIdGenerator {
-    pub(crate) fn new() -> Self {
-        Self(0)
-    }
-
-    fn next(&mut self) -> PlayerId {
-        self.0 += 1;
-        self.0
     }
 }
