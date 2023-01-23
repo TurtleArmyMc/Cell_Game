@@ -68,7 +68,7 @@ impl CanvasRender {
             for p in game.player_cells() {
                 self.render_player_cell(
                     scaler,
-                    p,
+                    &p,
                     game.player_infos().find(|i| i.id() == p.owner()).unwrap(),
                 );
             }

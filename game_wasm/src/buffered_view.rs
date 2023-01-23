@@ -1,4 +1,4 @@
-use std::slice::Iter;
+use std::{iter::Cloned, slice::Iter};
 
 use cell_game::{
     cells::{food_cell::FoodCell, player_cell::PlayerCell},
@@ -19,8 +19,8 @@ pub struct BufferedView {
 impl BufferedView {
     pub fn new<'a, V: GameView<'a>>(view: &'a V) -> Self {
         Self {
-            players: view.player_cells().cloned().collect(),
-            food: view.food_cells().cloned().collect(),
+            players: view.player_cells().collect(),
+            food: view.food_cells().collect(),
             info: view.player_infos().cloned().collect(),
             view_area: view.view_area(),
             owner: view.owner(),
@@ -29,16 +29,16 @@ impl BufferedView {
 }
 
 impl<'a> GameView<'a> for BufferedView {
-    type P = Iter<'a, PlayerCell>;
-    type F = Iter<'a, FoodCell>;
+    type P = Cloned<Iter<'a, PlayerCell>>;
+    type F = Cloned<Iter<'a, FoodCell>>;
     type I = Iter<'a, PlayerInfo>;
 
     fn player_cells(&'a self) -> Self::P {
-        self.players.iter()
+        self.players.iter().cloned()
     }
 
     fn food_cells(&'a self) -> Self::F {
-        self.food.iter()
+        self.food.iter().cloned()
     }
 
     fn player_infos(&'a self) -> Self::I {

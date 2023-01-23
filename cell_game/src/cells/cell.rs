@@ -2,7 +2,7 @@ use std::f64;
 
 use crate::pos::{Circle, Point};
 
-pub trait Cell: Sized {
+pub trait Cell: Clone + Sized {
     const MASS_AREA_MULTIPLIER: f64 = f64::consts::PI * 5.0;
 
     fn pos(&self) -> Point;

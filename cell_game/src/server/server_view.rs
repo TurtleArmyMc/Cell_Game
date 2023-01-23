@@ -1,5 +1,5 @@
 use std::{
-    iter::{repeat, Filter, Map, Repeat, Zip},
+    iter::{repeat, Cloned, Filter, Map, Repeat, Zip},
     slice::Iter,
 };
 
@@ -50,9 +50,11 @@ fn cell_visible<T: Cell>(&(cell, view_area): &(&T, Option<Circle>)) -> bool {
     }
 }
 
-type ServerViewIterator<'a, T> = Map<
-    Filter<Zip<Iter<'a, T>, Repeat<Option<Circle>>>, fn(&(&T, Option<Circle>)) -> bool>,
-    fn((&T, Option<Circle>)) -> &T,
+type ServerViewIterator<'a, T> = Cloned<
+    Map<
+        Filter<Zip<Iter<'a, T>, Repeat<Option<Circle>>>, fn(&(&T, Option<Circle>)) -> bool>,
+        fn((&T, Option<Circle>)) -> &T,
+    >,
 >;
 
 impl<'a> GameView<'a> for ServerView<'a> {
@@ -92,5 +94,6 @@ impl<'a> ServerView<'a> {
             .zip(repeat(self.view_area))
             .filter(cell_visible as fn(&(&T, Option<Circle>)) -> bool)
             .map(cell_from_tuple as fn((&T, Option<Circle>)) -> &T)
+            .cloned()
     }
 }

@@ -6,8 +6,8 @@ use crate::{
 };
 
 pub trait GameView<'a> {
-    type P: Iterator<Item = &'a PlayerCell>;
-    type F: Iterator<Item = &'a FoodCell>;
+    type P: Iterator<Item = PlayerCell>;
+    type F: Iterator<Item = FoodCell>;
     type I: Iterator<Item = &'a PlayerInfo>;
 
     fn player_cells(&'a self) -> Self::P;
