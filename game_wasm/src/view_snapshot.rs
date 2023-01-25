@@ -13,7 +13,7 @@ pub struct ViewSnapshot {
     players: Vec<PlayerCell>,
     food: Vec<FoodCell>,
     info: Vec<PlayerInfo>,
-    view_area: Option<Circle>,
+    view_area: Circle,
     owner: PlayerId,
 }
 
@@ -46,7 +46,7 @@ impl<'a> GameView<'a> for ViewSnapshot {
         self.info.iter()
     }
 
-    fn view_area(&self) -> Option<Circle> {
+    fn view_area(&self) -> Circle {
         self.view_area
     }
 

@@ -2,7 +2,7 @@ use std::iter::repeat_with;
 
 use crate::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
-    client_connection::{ClientConnection, PlayerInput},
+    client_connection::ClientConnection,
     ids::{IdGenerator, PlayerCellId, PlayerId},
     player_info::PlayerInfo,
     pos::{Circle, Point, Rect},
@@ -48,10 +48,9 @@ impl GameServer {
     }
 
     pub fn tick(&mut self) {
-        self.move_players();
+        self.handle_connections();
         self.feed_food();
         self.remove_mass();
-        self.handle_connections();
     }
 
     pub fn connect_player(
@@ -71,12 +70,6 @@ impl GameServer {
         ));
 
         self.player_infos.push(player_info);
-    }
-
-    fn move_players(&mut self) {
-        for cell in self.players.iter_mut() {
-            cell.move_player(self.bounds)
-        }
     }
 
     fn feed_food(&mut self) {
@@ -105,32 +98,39 @@ impl GameServer {
     fn handle_connections(&mut self) {
         for conn in self.connections.iter_mut() {
             let owner = conn.id();
-            let view_area = Self::player_view_area(&self.players, owner);
-            let input = conn.connection().on_tick(ServerView::new(
-                &self.players,
-                &self.food,
-                &self.player_infos,
-                view_area,
-                owner,
-            ));
+            if let Some(view_area) = Self::player_view_area(&self.players, owner) {
+                let input = conn.connection().on_tick(ServerView::new(
+                    &self.players,
+                    &self.food,
+                    &self.player_infos,
+                    view_area,
+                    owner,
+                ));
 
-            if let Some(PlayerInput { move_to }) = input {
-                Self::set_move_to(
+                let move_to = view_area.center.offset(input.move_vec);
+
+                Self::move_players(
                     self.players.iter_mut().filter(|cell| cell.owner() == owner),
                     move_to,
-                )
+                    self.bounds,
+                );
             }
         }
     }
 
-    fn n_food(bounds: Rect, n: usize) -> impl Iterator<Item = FoodCell> {
-        repeat_with(move || FoodCell::new_within(bounds)).take(n)
+    fn move_players<'a, T: Iterator<Item = &'a mut PlayerCell>>(
+        players: T,
+        move_to: Point,
+        bounds: Rect,
+    ) {
+        for cell in players {
+            cell.move_player(move_to, bounds);
+        }
     }
 
-    fn set_move_to<'a, I: Iterator<Item = &'a mut PlayerCell>>(players: I, dest: Point) {
-        for p in players {
-            p.move_towards_point(dest)
-        }
+
+    fn n_food(bounds: Rect, n: usize) -> impl Iterator<Item = FoodCell> {
+        repeat_with(move || FoodCell::new_within(bounds)).take(n)
     }
 
     fn player_view_area(players: &Vec<PlayerCell>, owner: PlayerId) -> Option<Circle> {

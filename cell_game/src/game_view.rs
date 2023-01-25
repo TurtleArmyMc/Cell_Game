@@ -13,8 +13,7 @@ pub trait GameView<'a> {
     fn player_cells(&'a self) -> Self::P;
     fn food_cells(&'a self) -> Self::F;
     fn player_infos(&'a self) -> Self::I;
-    /// Returns None if the viewer has no cells remaining
-    fn view_area(&self) -> Option<Circle>;
+    fn view_area(&self) -> Circle;
     /// The player who the view belongs to
     fn owner(&self) -> PlayerId;
 }

@@ -1,4 +1,4 @@
-use std::ops::Mul;
+use std::ops::{Div, Mul};
 
 #[derive(Clone, Copy)]
 pub struct Point {
@@ -56,6 +56,14 @@ impl Vec2 {
             y: self.y / mag,
         }
     }
+
+    pub fn max_magnitude(self, max: f64) -> Self {
+        if self.magnitude_squared() > max * max {
+            self.normalize() * max
+        } else {
+            self
+        }
+    }
 }
 
 impl Mul<f64> for Vec2 {
@@ -65,6 +73,17 @@ impl Mul<f64> for Vec2 {
         Self::Output {
             x: self.x * scale,
             y: self.y * scale,
+        }
+    }
+}
+
+impl Div<f64> for Vec2 {
+    type Output = Self;
+
+    fn div(self, scale: f64) -> Self::Output {
+        Self::Output {
+            x: self.x / scale,
+            y: self.y / scale,
         }
     }
 }
@@ -99,6 +118,13 @@ impl Rect {
             x: self.width / 2.0,
             y: self.height / 2.0,
         })
+    }
+
+    pub fn clamp_pos(self, Point { x, y }: Point) -> Point {
+        Point {
+            x: x.max(self.min_x()).min(self.max_x()),
+            y: y.max(self.min_y()).min(self.max_y()),
+        }
     }
 
     pub fn bottom_right(self) -> Point {

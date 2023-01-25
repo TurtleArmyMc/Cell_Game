@@ -39,7 +39,7 @@ impl CanvasRender {
         self.set_html_canvas_dimensions();
         self.clear_canvas();
 
-        self.view_scaler = ViewScaler::new(game, &self.cvs);
+        self.view_scaler = Some(ViewScaler::new(game, &self.cvs));
 
         self.render_cells(game);
     }

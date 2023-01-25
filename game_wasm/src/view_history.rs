@@ -95,11 +95,8 @@ impl<'a> GameView<'a> for InterpolatedView<'a> {
         self.curr.player_infos()
     }
 
-    fn view_area(&self) -> Option<Circle> {
-        match (self.prev.view_area(), self.curr.view_area()) {
-            (Some(prev), Some(curr)) => Some(Self::lerp_circle(prev, curr, self.delta)),
-            (prev, curr) => curr.or(prev),
-        }
+    fn view_area(&self) -> Circle {
+        Self::lerp_circle(self.prev.view_area(), self.curr.view_area(), self.delta)
     }
 
     fn owner(&self) -> PlayerId {

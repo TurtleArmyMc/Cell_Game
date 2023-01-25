@@ -15,7 +15,7 @@ pub struct ServerView<'a> {
     players: &'a Vec<PlayerCell>,
     food: &'a Vec<FoodCell>,
     player_infos: &'a Vec<PlayerInfo>,
-    view_area: Option<Circle>,
+    view_area: Circle,
     owner: PlayerId,
 }
 
@@ -24,7 +24,7 @@ impl<'a> ServerView<'a> {
         players: &'a Vec<PlayerCell>,
         food: &'a Vec<FoodCell>,
         player_infos: &'a Vec<PlayerInfo>,
-        view_area: Option<Circle>,
+        view_area: Circle,
         owner: PlayerId,
     ) -> Self {
         Self {
@@ -38,22 +38,19 @@ impl<'a> ServerView<'a> {
 }
 
 #[inline]
-fn cell_from_tuple<'a, T: Cell>((cell, _): (&'a T, Option<Circle>)) -> &'a T {
+fn cell_from_tuple<'a, T: Cell>((cell, _): (&'a T, Circle)) -> &'a T {
     cell
 }
 
 #[inline]
-fn cell_visible<T: Cell>(&(cell, view_area): &(&T, Option<Circle>)) -> bool {
-    match view_area {
-        Some(area) => cell.hitbox().overlaps_circle(area),
-        None => false,
-    }
+fn cell_visible<T: Cell>(&(cell, view_area): &(&T, Circle)) -> bool {
+    cell.hitbox().overlaps_circle(view_area)
 }
 
 type ServerViewIterator<'a, T> = Cloned<
     Map<
-        Filter<Zip<Iter<'a, T>, Repeat<Option<Circle>>>, fn(&(&T, Option<Circle>)) -> bool>,
-        fn((&T, Option<Circle>)) -> &T,
+        Filter<Zip<Iter<'a, T>, Repeat<Circle>>, fn(&(&T, Circle)) -> bool>,
+        fn((&T, Circle)) -> &T,
     >,
 >;
 
@@ -74,7 +71,7 @@ impl<'a> GameView<'a> for ServerView<'a> {
         self.player_infos.iter()
     }
 
-    fn view_area(&self) -> Option<Circle> {
+    fn view_area(&self) -> Circle {
         self.view_area
     }
 
@@ -92,8 +89,8 @@ impl<'a> ServerView<'a> {
         cells
             .iter()
             .zip(repeat(self.view_area))
-            .filter(cell_visible as fn(&(&T, Option<Circle>)) -> bool)
-            .map(cell_from_tuple as fn((&T, Option<Circle>)) -> &T)
+            .filter(cell_visible as fn(&(&T, Circle)) -> bool)
+            .map(cell_from_tuple as fn((&T, Circle)) -> &T)
             .cloned()
     }
 }

@@ -10,7 +10,12 @@ mod view_scaler;
 mod view_snapshot;
 mod web_utils;
 
-use cell_game::{client_connection::PlayerInput, pos::Point, server::game_server::GameServer};
+use cell_game::{
+    client_connection::PlayerInput,
+    game_view::GameView,
+    pos::{Point, Vec2},
+    server::game_server::GameServer,
+};
 use local_connection::LocalConnection;
 use renderer::CanvasRender;
 use std::{cell::RefCell, rc::Rc};
@@ -33,7 +38,9 @@ pub fn start() -> JsResult {
     let canvas_move_writer = canvas_move_reader.clone();
     // Keeps track of the most recent input made while rendering, and read each
     // game tick.
-    let player_input_reader = Rc::new(RefCell::new(None));
+    let player_input_reader = Rc::new(RefCell::new(PlayerInput {
+        move_vec: Vec2::ZERO,
+    }));
     let player_input_writer = player_input_reader.clone();
     // Keeps track of when the last tick was run. This is used for visually
     // interpolating between ticks when the refresh rate of the renderer is
@@ -78,18 +85,27 @@ pub fn start() -> JsResult {
             .map(|last_tick| (timestamp - last_tick) / (1_000.0 / GameServer::TICK_RATE as f64))
             .unwrap_or(0.0);
 
-        match view_history_reader.borrow().get_interpolated_view(delta) {
-            Some(BufferedView::Interpolated(view)) => renderer.render(&view),
-            Some(BufferedView::Snapshot(view)) => renderer.render(view),
-            None => (),
-        }
+        let view_area = match view_history_reader.borrow().get_interpolated_view(delta) {
+            Some(BufferedView::Interpolated(view)) => {
+                renderer.render(&view);
+                Some(view.view_area())
+            }
+            Some(BufferedView::Snapshot(view)) => {
+                renderer.render(view);
+                Some(view.view_area())
+            }
+            None => None,
+        };
 
-        if let Some(pos) = canvas_move_reader
-            .borrow_mut()
-            .zip(renderer.view_scaler())
-            .map(|(pos, scaler)| scaler.canvas_to_game_pos(pos))
+        if let Some(move_vec) = renderer
+            .view_scaler()
+            .zip(view_area)
+            .zip(*canvas_move_reader.borrow_mut())
+            .map(|((scaler, circle), canvas_pos)| {
+                circle.center.vec_to(scaler.canvas_to_game_pos(canvas_pos))
+            })
         {
-            *player_input_writer.borrow_mut() = Some(PlayerInput { move_to: pos });
+            *player_input_writer.borrow_mut() = PlayerInput { move_vec };
         }
 
         web_utils::request_animation_frame(render_callback_ref_inner.borrow().as_ref().unwrap());
