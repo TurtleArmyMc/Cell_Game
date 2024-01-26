@@ -128,7 +128,6 @@ impl GameServer {
         }
     }
 
-
     fn n_food(bounds: Rect, n: usize) -> impl Iterator<Item = FoodCell> {
         repeat_with(move || FoodCell::new_within(bounds)).take(n)
     }

@@ -16,7 +16,7 @@ impl ViewScaler {
     /// canvas if the game isn't local.
     const CAMERA_AREA_SCALE: f64 = 0.9;
 
-    pub fn new<'a, V: GameView<'a>>(game_view: &V, cvs: &HtmlCanvasElement) -> Self {
+    pub fn new(game_view: &impl GameView, cvs: &HtmlCanvasElement) -> Self {
         let visible_game_area = game_view
             .view_area()
             .fit_rect_within_circle(cvs.width() as f64 / cvs.height() as f64)

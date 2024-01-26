@@ -5,14 +5,10 @@ use crate::{
     pos::Circle,
 };
 
-pub trait GameView<'a> {
-    type P: Iterator<Item = PlayerCell>;
-    type F: Iterator<Item = FoodCell>;
-    type I: Iterator<Item = &'a PlayerInfo>;
-
-    fn player_cells(&'a self) -> Self::P;
-    fn food_cells(&'a self) -> Self::F;
-    fn player_infos(&'a self) -> Self::I;
+pub trait GameView {
+    fn player_cells(&self) -> impl Iterator<Item = PlayerCell>;
+    fn food_cells(&self) -> impl Iterator<Item = FoodCell>;
+    fn player_infos(&self) -> impl Iterator<Item = &PlayerInfo>;
     fn view_area(&self) -> Circle;
     /// The player who the view belongs to
     fn owner(&self) -> PlayerId;

@@ -32,10 +32,7 @@ impl CanvasRender {
         self.view_scaler.as_ref()
     }
 
-    pub fn render<'a, View>(&mut self, game: &'a View)
-    where
-        View: GameView<'a>,
-    {
+    pub fn render(&mut self, game: &impl GameView) {
         self.set_html_canvas_dimensions();
         self.clear_canvas();
 
@@ -55,10 +52,7 @@ impl CanvasRender {
         self.cvs.set_height(rect.height() as u32);
     }
 
-    fn render_cells<'a, View>(&self, game: &'a View)
-    where
-        View: GameView<'a>,
-    {
+    fn render_cells(&self, game: &impl GameView) {
         if let Some(scaler) = self.view_scaler() {
             for p in game.player_cells() {
                 self.render_player_cell(

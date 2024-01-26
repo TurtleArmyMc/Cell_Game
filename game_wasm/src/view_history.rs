@@ -1,8 +1,3 @@
-use std::{
-    iter::{repeat, Cloned, Map, Zip},
-    slice::Iter,
-};
-
 use cell_game::{
     cells::{cell::Cell, food_cell::FoodCell, player_cell::PlayerCell},
     game_view::GameView,
@@ -39,7 +34,7 @@ impl ViewHistory {
         }
     }
 
-    pub fn update<'a, V: GameView<'a>>(&mut self, view: &'a V) {
+    pub fn update<'a, V: GameView>(&mut self, view: &'a V) {
         self.prev = self.curr.take();
         self.curr = Some(ViewSnapshot::new(view));
     }
@@ -57,41 +52,26 @@ impl ViewHistory {
     }
 }
 
-impl<'a> GameView<'a> for InterpolatedView<'a> {
-    type P = Map<
-        Zip<
-            Zip<Cloned<std::slice::Iter<'a, PlayerCell>>, std::iter::Repeat<&'a ViewSnapshot>>,
-            std::iter::Repeat<f64>,
-        >,
-        fn(((PlayerCell, &ViewSnapshot), f64)) -> PlayerCell,
-    >;
-    type F = Cloned<Iter<'a, FoodCell>>;
-    type I = Iter<'a, PlayerInfo>;
-
-    fn player_cells(&'a self) -> Self::P {
-        fn try_lerp(((mut cell, prev), delta): ((PlayerCell, &ViewSnapshot), f64)) -> PlayerCell {
-            if let Some(prev_cell) = prev
+impl GameView for InterpolatedView<'_> {
+    fn player_cells(&self) -> impl Iterator<Item = PlayerCell> {
+        self.curr.player_cells().map(|mut cell| {
+            if let Some(prev_cell) = self
+                .prev
                 .player_cells()
                 .find(|prev_cell| prev_cell.id() == cell.id())
             {
-                *cell.pos_mut() = InterpolatedView::lerp_point(prev_cell.pos(), cell.pos(), delta);
-                *cell.mass_mut() = InterpolatedView::lerp_f64(prev_cell.mass(), cell.mass(), delta);
+                *cell.pos_mut() = Self::lerp_point(prev_cell.pos(), cell.pos(), self.delta);
+                *cell.mass_mut() = Self::lerp_f64(prev_cell.mass(), cell.mass(), self.delta);
             }
             cell
-        }
-
-        self.curr
-            .player_cells()
-            .zip(repeat(self.prev))
-            .zip(repeat(self.delta))
-            .map(try_lerp as fn(((PlayerCell, &ViewSnapshot), f64)) -> PlayerCell)
+        })
     }
 
-    fn food_cells(&'a self) -> Self::F {
+    fn food_cells(&self) -> impl Iterator<Item = FoodCell> {
         self.prev.food_cells()
     }
 
-    fn player_infos(&'a self) -> Self::I {
+    fn player_infos(&self) -> impl Iterator<Item = &PlayerInfo> {
         self.curr.player_infos()
     }
 
@@ -104,7 +84,7 @@ impl<'a> GameView<'a> for InterpolatedView<'a> {
     }
 }
 
-impl<'a> InterpolatedView<'a> {
+impl InterpolatedView<'_> {
     fn lerp_f64(prev: f64, curr: f64, delta: f64) -> f64 {
         prev + (curr - prev) * delta
     }

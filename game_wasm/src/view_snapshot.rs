@@ -1,5 +1,3 @@
-use std::{iter::Cloned, slice::Iter};
-
 use cell_game::{
     cells::{food_cell::FoodCell, player_cell::PlayerCell},
     game_view::GameView,
@@ -18,7 +16,7 @@ pub struct ViewSnapshot {
 }
 
 impl ViewSnapshot {
-    pub fn new<'a, V: GameView<'a>>(view: &'a V) -> Self {
+    pub fn new(view: &impl GameView) -> Self {
         Self {
             players: view.player_cells().collect(),
             food: view.food_cells().collect(),
@@ -29,20 +27,16 @@ impl ViewSnapshot {
     }
 }
 
-impl<'a> GameView<'a> for ViewSnapshot {
-    type P = Cloned<Iter<'a, PlayerCell>>;
-    type F = Cloned<Iter<'a, FoodCell>>;
-    type I = Iter<'a, PlayerInfo>;
-
-    fn player_cells(&'a self) -> Self::P {
+impl GameView for ViewSnapshot {
+    fn player_cells(&self) -> impl Iterator<Item = PlayerCell> {
         self.players.iter().cloned()
     }
 
-    fn food_cells(&'a self) -> Self::F {
+    fn food_cells(&self) -> impl Iterator<Item = FoodCell> {
         self.food.iter().cloned()
     }
 
-    fn player_infos(&'a self) -> Self::I {
+    fn player_infos(&self) -> impl Iterator<Item = &PlayerInfo> {
         self.info.iter()
     }
 

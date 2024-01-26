@@ -15,7 +15,7 @@ pub struct LocalConnection {
 impl<'a> ClientConnection<'a> for LocalConnection {
     type V = ServerView<'a>;
 
-    fn on_tick(&'a mut self, view: Self::V) -> PlayerInput {
+    fn on_tick(&mut self, view: Self::V) -> PlayerInput {
         self.view_history_writer.borrow_mut().update(&view);
         self.player_move_reader.borrow_mut().clone()
     }

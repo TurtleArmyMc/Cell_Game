@@ -10,7 +10,7 @@ pub struct PlayerInput {
 }
 
 pub trait ClientConnection<'a> {
-    type V: GameView<'a>;
+    type V: GameView;
 
-    fn on_tick(&'a mut self, view: Self::V) -> PlayerInput;
+    fn on_tick(&mut self, view: Self::V) -> PlayerInput;
 }
